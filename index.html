@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flap Packs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@600;800;900&display=swap">
+<style>
+/* Layout: one portrait arcade stage centered on a dusk sky; menus and pack reveals float over it as cards. Single committed look. */
+:root{
+  --sky:#1d2a4d; --ink:#1a1530; --paper:#fff8ec; --sun:#ffb23e; --coral:#ff6a4d; --mint:#3ed6b0;
+  --muted:#6d6886;
+  --common:#9aa7b0; --rare:#3a8dde; --epic:#a24ee0; --legendary:#f2a81d; --mythic:#ff4f9a;
+  --display:"Bungee","Arial Black",Impact,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(120% 90% at 50% 0%,#33406e 0%,var(--sky) 55%,#10162b 100%);background-color:var(--sky);color:var(--paper);font-family:var(--body);display:grid;place-items:center;padding-inline:16px;padding-block:12px;box-sizing:border-box;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.stage{position:relative;width:min(100%,calc((100% - 0px) * 1));aspect-ratio:5/8;height:auto;max-height:100%;max-width:min(100%,calc((100dvh - 24px) * .625));border-radius:22px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 4px var(--ink);background:#7fd0ef;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+canvas{display:block;width:100%;height:100%}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;text-align:center}
+.overlay.dim{background:rgba(20,16,40,.55);backdrop-filter:blur(2px)}
+.logo{font-family:var(--display);font-size:clamp(34px,11cqw,54px);line-height:.9;color:var(--sun);text-shadow:0 4px 0 var(--ink),0 0 0 var(--ink);-webkit-text-stroke:2px var(--ink);letter-spacing:.5px;margin:0;transform:rotate(-4deg)}
+.logo span{display:block;color:var(--coral);font-size:1.15em}
+.stage{container-type:inline-size}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:var(--paper);border-radius:999px;padding:6px 12px;font-weight:900;font-variant-numeric:tabular-nums;font-size:15px}
+.coin-ico{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3b0,var(--sun) 55%,#c97a00);box-shadow:inset 0 0 0 2px #b36b00;flex:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{font-family:var(--display);font-size:18px;letter-spacing:.5px;border:3px solid var(--ink);border-radius:14px;padding:12px 20px;background:var(--sun);color:var(--ink);box-shadow:0 5px 0 var(--ink);cursor:pointer;transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible{outline:3px solid var(--paper);outline-offset:3px}
+.btn.alt{background:var(--paper)}
+.btn.mint{background:var(--mint)}
+.btn.coral{background:var(--coral);color:var(--paper)}
+.btn.big{font-size:24px;padding:14px 34px}
+.btn.sm{font-size:14px;padding:8px 14px;box-shadow:0 3px 0 var(--ink)}
+.btn[disabled]{filter:grayscale(.8);opacity:.6;cursor:not-allowed}
+.card{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:18px;padding:16px;box-shadow:0 6px 0 var(--ink);width:100%;max-width:340px;box-sizing:border-box}
+.card h2{font-family:var(--display);font-size:22px;margin:0 0 4px;font-weight:400}
+.muted{color:var(--muted);font-size:13px;font-weight:700}
+.sel-bird{display:flex;align-items:center;gap:12px;text-align:left}
+.sel-bird canvas{width:64px;height:64px;flex:none;border-radius:12px;background:#dff3fb}
+.tag{display:inline-block;font-family:var(--display);font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:6px;color:#fff;text-transform:uppercase}
+.perks{margin:4px 0 0;padding:0;list-style:none;font-size:13px;font-weight:800;line-height:1.35}
+.topbar{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.packs{display:grid;gap:10px;width:100%;max-width:340px}
+.pack{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;text-align:left;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:10px 12px;box-shadow:0 5px 0 var(--ink);cursor:pointer;font:inherit}
+.pack:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink)}
+.pack:focus-visible{outline:3px solid var(--paper);outline-offset:3px}
+.pack[disabled]{opacity:.55;cursor:not-allowed}
+.pack-art{width:56px;height:70px;border-radius:8px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:22px;color:#fff;position:relative;overflow:hidden}
+.pack-art::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.45) 45%,transparent 60%)}
+.pack b{font-family:var(--display);font-weight:400;font-size:16px;display:block}
+.odds{font-size:11px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.price{font-weight:900;display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;max-height:52cqh;overflow-y:auto;padding:4px}
+.slot{background:#eef7fb;border:3px solid var(--ink);border-radius:12px;padding:4px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:inherit;color:var(--ink)}
+.slot canvas{width:56px;height:56px}
+.slot span{font-size:11px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.slot.locked{cursor:default;background:#d8d4e4}
+.slot.on{outline:3px solid var(--coral);outline-offset:1px}
+.slot:focus-visible{outline:3px solid var(--mint)}
+.reveal{perspective:800px}
+.box{width:150px;height:190px;border:4px solid var(--ink);border-radius:16px;display:grid;place-items:center;font-family:var(--display);font-size:40px;color:#fff;box-shadow:0 8px 0 var(--ink);cursor:pointer;animation:shake 1.1s infinite}
+@keyframes shake{0%,70%,100%{transform:rotate(0)}75%{transform:rotate(-6deg)}80%{transform:rotate(6deg)}85%{transform:rotate(-4deg)}90%{transform:rotate(4deg)}}
+.won{position:relative;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.3) rotateY(180deg);opacity:.2}to{transform:scale(1) rotateY(0);opacity:1}}
+.burst{position:absolute;left:50%;top:40%;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;pointer-events:none;animation:spin 6s linear infinite;opacity:.55}
+@keyframes spin{to{transform:rotate(360deg)}}
+.won-card{position:relative;background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:18px;padding:16px 18px;box-shadow:0 8px 0 var(--ink);width:220px}
+.won-card canvas{width:120px;height:120px}
+.won-card h3{font-family:var(--display);font-weight:400;font-size:24px;margin:2px 0}
+.newflag{font-family:var(--display);color:var(--coral);font-size:14px}
+.hint{font-weight:900;font-size:15px;color:var(--paper);text-shadow:0 2px 0 var(--ink)}
+.score-big{font-family:var(--display);font-size:64px;line-height:1;color:var(--paper);-webkit-text-stroke:2px var(--ink);text-shadow:0 4px 0 var(--ink)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.stats div{background:#efe7d6;border-radius:10px;padding:8px}
+.stats b{display:block;font-family:var(--display);font-weight:400;font-size:22px;font-variant-numeric:tabular-nums}
+.x{position:absolute;top:12px;right:12px}
+@media (prefers-reduced-motion:reduce){.box,.burst,.won{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <canvas id="cv" aria-label="Flap Packs game"></canvas>
+
+  <!-- HOME -->
+  <div class="overlay" id="home">
+    <div class="topbar"><span class="pill"><i class="coin-ico"></i><span id="hCoins">0</span></span><span class="pill">Best <span id="hBest">0</span></span></div>
+    <h1 class="logo">Flap<span>Packs</span></h1>
+    <div class="card sel-bird" id="selCard"></div>
+    <button class="btn big" id="playBtn">Play</button>
+    <div class="row">
+      <button class="btn coral" id="packsBtn">Packs</button>
+      <button class="btn alt" id="flockBtn">Flock</button>
+    </div>
+    <div class="hint">Tap, click or press Space to flap</div>
+  </div>
+
+  <!-- PACK SHOP -->
+  <div class="overlay dim" id="shop" hidden>
+    <button class="btn sm alt x" data-back>Back</button>
+    <div class="topbar" style="right:auto"><span class="pill"><i class="coin-ico"></i><span id="sCoins">0</span></span></div>
+    <h2 class="logo" style="font-size:34px">Packs</h2>
+    <div class="packs" id="packList"></div>
+    <div class="muted" style="color:var(--paper)">Duplicates turn back into coins.</div>
+  </div>
+
+  <!-- PACK REVEAL -->
+  <div class="overlay dim reveal" id="reveal" hidden></div>
+
+  <!-- FLOCK -->
+  <div class="overlay dim" id="flock" hidden>
+    <button class="btn sm alt x" data-back>Back</button>
+    <div class="card">
+      <h2>Your Flock</h2>
+      <div class="muted" id="flockCount"></div>
+      <div class="grid" id="flockGrid"></div>
+    </div>
+    <div class="card sel-bird" id="flockSel"></div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="overlay dim" id="over" hidden>
+    <div class="card">
+      <h2>Bonk!</h2>
+      <div class="score-big" id="oScore">0</div>
+      <div class="stats">
+        <div><span class="muted">Best</span><b id="oBest">0</b></div>
+        <div><span class="muted">Coins earned</span><b id="oCoins">0</b></div>
+      </div>
+      <div class="muted" id="oTip"></div>
+    </div>
+    <div class="row">
+      <button class="btn big" id="retryBtn">Again</button>
+    </div>
+    <div class="row">
+      <button class="btn coral" id="oPacks">Packs</button>
+      <button class="btn alt" id="oHome">Home</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const W=400,H=640,GROUND=H-80;
+const R={common:{n:"Common",c:"#9aa7b0",dup:10},rare:{n:"Rare",c:"#3a8dde",dup:25},epic:{n:"Epic",c:"#a24ee0",dup:60},legendary:{n:"Legendary",c:"#f2a81d",dup:150},mythic:{n:"Mythic",c:"#ff4f9a",dup:300}};
+const ORDER=["common","rare","epic","legendary","mythic"];
+// perks: mult coin multiplier, shield hits, grav gravity factor, size hitbox scale, gap extra px, magnet radius, revive
+const BIRDS=[
+ {id:"chirp",name:"Chirp",r:"common",c:["#ffd23f","#fff2b3","#f4a800","#ff7a2f"],p:{}},
+ {id:"pip",name:"Pip",r:"common",c:["#ff8fa3","#ffe0e6","#e8577a","#ffb03a"],p:{mult:1.25}},
+ {id:"sunny",name:"Sunny",r:"common",c:["#ffa24a","#ffe3c2","#e0701c","#ffd23f"],p:{size:.88}},
+ {id:"pebble",name:"Pebble",r:"common",c:["#a3a8b8","#e3e5ec","#747a8c","#f0a030"],p:{gap:12}},
+ {id:"blueberry",name:"Blueberry",r:"rare",c:["#4c8dff","#cfe0ff","#2a5fcf","#ffb23e"],p:{shield:1}},
+ {id:"mossy",name:"Mossy",r:"rare",c:["#5fc26b","#d6f5cf","#2f8f3e","#ffcf4a"],p:{gap:26,mult:1.2}},
+ {id:"pepper",name:"Pepper",r:"rare",c:["#e8433a","#ffd0c7","#a8201a","#222"],p:{mult:1.6},crest:1},
+ {id:"nimbus",name:"Nimbus",r:"epic",c:["#e9f4ff","#ffffff","#a9c8ea","#7aa7d8"],p:{grav:.82,gap:14,mult:1.4}},
+ {id:"volt",name:"Voltwing",r:"epic",c:["#3b2a6b","#ffe14d","#ffe14d","#ffe14d"],p:{shield:2,mult:1.3},crest:1},
+ {id:"goldcrest",name:"Goldcrest",r:"legendary",c:["#f7c531","#fff4c2","#c98a00","#8a4a00"],p:{mult:2.2,magnet:130},crest:1,sparkle:"#fff2a0"},
+ {id:"phoenix",name:"Phoenix",r:"legendary",c:["#ff5a2c","#ffc24a","#c2200f","#ffe14d"],p:{revive:1,shield:1,mult:1.6},crest:1,sparkle:"#ffb13b"},
+ {id:"cosmo",name:"Cosmo",r:"mythic",c:["#2b1b5c","#ff7bd0","#7a5cff","#7df9ff"],p:{mult:3,shield:2,size:.8,magnet:110,grav:.9},crest:1,sparkle:"#9ef3ff"},
+];
+const PACKS=[
+ {id:"basic",name:"Twig Pack",cost:50,col:"#6fbf5a",sym:"T",odds:{common:70,rare:25,epic:4.5,legendary:.5,mythic:0}},
+ {id:"prem",name:"Feather Pack",cost:150,col:"#3a8dde",sym:"F",odds:{common:28,rare:45,epic:22,legendary:4.5,mythic:.5}},
+ {id:"myth",name:"Nebula Pack",cost:400,col:"#a24ee0",sym:"N",odds:{common:0,rare:30,epic:45,legendary:20,mythic:5}},
+];
+const byId=Object.fromEntries(BIRDS.map(b=>[b.id,b]));
+const perksOf=b=>({mult:1,shield:0,grav:1,size:1,gap:0,magnet:0,revive:0,...b.p});
+function perkLines(b){const p=perksOf(b),o=[];
+ if(p.mult>1)o.push(`×${p.mult} coins`);
+ if(p.shield)o.push(`${p.shield} shield${p.shield>1?"s":""} per run`);
+ if(p.revive)o.push("Revives once from a crash");
+ if(p.grav<1)o.push(`${Math.round((1-p.grav)*100)}% lighter gravity`);
+ if(p.size<1)o.push(`${Math.round((1-p.size)*100)}% smaller hitbox`);
+ if(p.gap)o.push(`+${p.gap}px wider gaps`);
+ if(p.magnet)o.push("Coin magnet");
+ if(!o.length)o.push("No perks. Pure skill.");return o;}
+
+// ---------- save ----------
+let save={coins:60,best:0,owned:{chirp:1},sel:"chirp"};
+try{const s=JSON.parse(localStorage.getItem("flappacks")||"null");if(s&&s.owned)save={...save,...s};}catch(e){}
+const persist=()=>{try{localStorage.setItem("flappacks",JSON.stringify(save))}catch(e){}};
+if(!byId[save.sel])save.sel="chirp";
+
+// ---------- canvas ----------
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+function resize(){const r=cv.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);}
+new ResizeObserver(resize).observe(cv);resize();
+
+function drawBird(c,b,x,y,rot,t,s){
+ const [body,belly,wing,beak]=b.c;
+ c.save();c.translate(x,y);c.rotate(rot);c.scale(s,s);
+ c.lineWidth=2.5;c.strokeStyle="#1a1530";c.lineJoin="round";
+ if(b.crest){c.fillStyle=wing;c.beginPath();c.moveTo(-4,-12);c.lineTo(-1,-22);c.lineTo(3,-13);c.lineTo(6,-20);c.lineTo(8,-11);c.closePath();c.fill();c.stroke();}
+ // tail
+ c.fillStyle=wing;c.beginPath();c.moveTo(-15,-2);c.lineTo(-25,-8);c.lineTo(-23,4);c.closePath();c.fill();c.stroke();
+ c.fillStyle=body;c.beginPath();c.ellipse(0,0,17,14,0,0,Math.PI*2);c.fill();c.stroke();
+ c.fillStyle=belly;c.beginPath();c.ellipse(4,5,10,6.5,0,0,Math.PI*2);c.fill();
+ c.save();c.translate(-5,1);c.rotate(Math.sin(t)*.6);c.fillStyle=wing;c.beginPath();c.ellipse(0,0,9,5.5,-.2,0,Math.PI*2);c.fill();c.stroke();c.restore();
+ c.fillStyle="#fff";c.beginPath();c.arc(8,-5,5.5,0,Math.PI*2);c.fill();c.stroke();
+ c.fillStyle="#1a1530";c.beginPath();c.arc(10,-5,2.4,0,Math.PI*2);c.fill();
+ c.fillStyle=beak;c.beginPath();c.moveTo(14,-2);c.lineTo(25,2);c.lineTo(14,6);c.closePath();c.fill();c.stroke();
+ c.restore();
+}
+function birdThumb(b,px,owned){const c=document.createElement("canvas"),d=2;c.width=px*d;c.height=px*d;const x=c.getContext("2d");x.scale(d,d);
+ if(owned)drawBird(x,b,px/2+2,px/2+2,0,1,px/52);
+ else{x.globalAlpha=1;drawBird(x,{...b,c:["#8a84a0","#8a84a0","#6d6886","#8a84a0"]},px/2+2,px/2+2,0,1,px/52);x.fillStyle="#fff";x.font=`900 ${px*.35}px Nunito,sans-serif`;x.textAlign="center";x.textBaseline="middle";x.fillText("?",px/2,px/2+2);}
+ return c;}
+
+// ---------- world ----------
+let state="home",bird,pipes,coins,parts,score,runCoins,speed,shields,revive,inv,t=0,dist=0,perks,shake=0,flash=0;
+const clouds=Array.from({length:6},(_,i)=>({x:i*90+Math.random()*60,y:40+Math.random()*220,s:.6+Math.random()*.8}));
+function reset(){
+ const b=byId[save.sel];perks=perksOf(b);
+ bird={x:110,y:H*.42,vy:0,rot:0,r:13*perks.size,b};
+ pipes=[];coins=[];parts=[];score=0;runCoins=0;speed=2.6;shields=perks.shield;revive=perks.revive;inv=0;dist=0;
+}
+function flap(){
+ if(state==="ready"){state="play";}
+ if(state==="play"){bird.vy=-7.4;puff(bird.x-12,bird.y+4,5,"#ffffff");}
+}
+function puff(x,y,n,col){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*3-1,vy:(Math.random()-.5)*3,l:1,col,r:2+Math.random()*3});}
+function spawnPipe(){
+ const gap=158+perks.gap-Math.min(score*.6,24);
+ const gy=110+Math.random()*(GROUND-220);
+ pipes.push({x:W+40,gy,gap,passed:false});
+ if(Math.random()<.6){coins.push({x:W+40+105,y:Math.max(90,Math.min(GROUND-60,gy+(Math.random()-.5)*120)),got:false,bob:Math.random()*6});}
+}
+function hit(ground){
+ if(inv>0)return;
+ if(shields>0){shields--;inv=70;shake=10;flash=1;puff(bird.x,bird.y,14,"#7df9ff");bird.vy=ground?-8.5:-5;return;}
+ if(revive){revive=0;inv=120;shake=14;flash=1;bird.y=H*.4;bird.vy=-5;pipes=pipes.filter(p=>p.x>bird.x+160||p.x<bird.x-80);puff(bird.x,bird.y,26,"#ffb13b");return;}
+ die();
+}
+function die(){
+ state="dead";shake=16;flash=1;puff(bird.x,bird.y,20,"#fff");
+ const earned=Math.floor(runCoins);save.coins+=earned;
+ const nb=score>save.best;if(nb)save.best=score;persist();
+ setTimeout(()=>{
+  $("oScore").textContent=score;$("oBest").textContent=save.best+(nb&&score>0?" ★":"");$("oCoins").textContent="+"+earned;
+  const cheapest=PACKS.find(p=>save.coins>=p.cost);
+  $("oTip").textContent=cheapest?`You have ${save.coins} coins. Enough for a ${cheapest.name}!`:`You have ${save.coins} coins. A Twig Pack costs 50.`;
+  show("over");
+ },650);
+}
+function rectHit(cx,cy,r,x,y,w,h){const nx=Math.max(x,Math.min(cx,x+w)),ny=Math.max(y,Math.min(cy,y+h));return (cx-nx)**2+(cy-ny)**2<r*r;}
+
+function update(dt){
+ t+=dt;
+ for(const c of clouds){c.x-=.25*c.s*dt*(state==="play"?1.6:1);if(c.x<-80){c.x=W+60;c.y=40+Math.random()*220;}}
+ for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=.03*dt;}parts=parts.filter(p=>p.l>0);
+ if(shake>0)shake=Math.max(0,shake-dt);if(flash>0)flash=Math.max(0,flash-.06*dt);
+ if(!bird)return;
+ if(state==="ready"||state==="home"){bird.y=H*.42+Math.sin(t*.08)*8;bird.rot=0;return;}
+ if(state==="dead"){if(bird.y<GROUND-bird.r){bird.vy+=.6*dt;bird.y+=bird.vy*dt;bird.rot=Math.min(bird.rot+.12*dt,1.5);}return;}
+ // play
+ speed=2.6+Math.min(score*.035,1.8);
+ dist+=speed*dt;
+ bird.vy+=.42*perks.grav*dt;bird.vy=Math.min(bird.vy,10);bird.y+=bird.vy*dt;
+ bird.rot=Math.max(-.45,Math.min(1.2,bird.vy*.08));
+ if(bird.y<bird.r){bird.y=bird.r;bird.vy=0;}
+ if(inv>0)inv-=dt;
+ if(bird.b.sparkle&&Math.random()<.5*dt)parts.push({x:bird.x-14,y:bird.y+(Math.random()-.5)*12,vx:-1.5,vy:(Math.random()-.5),l:1,col:bird.b.sparkle,r:2+Math.random()*2,star:1});
+ if(!pipes.length||pipes[pipes.length-1].x<W-210)spawnPipe();
+ for(const p of pipes){p.x-=speed*dt;
+  if(!p.passed&&p.x+64<bird.x){p.passed=true;score++;runCoins+=perks.mult;}
+  const top=p.gy-p.gap/2,bot=p.gy+p.gap/2;
+  if(rectHit(bird.x,bird.y,bird.r,p.x,-10,64,top+10)||rectHit(bird.x,bird.y,bird.r,p.x,bot,64,GROUND-bot))hit(false);
+ }
+ pipes=pipes.filter(p=>p.x>-80);
+ for(const c of coins){c.x-=speed*dt;
+  if(perks.magnet&&!c.got){const dx=bird.x-c.x,dy=bird.y-c.y,d=Math.hypot(dx,dy);if(d<perks.magnet){c.x+=dx/d*5*dt;c.y+=dy/d*5*dt;}}
+  if(!c.got&&Math.hypot(bird.x-c.x,bird.y-c.y)<bird.r+11){c.got=true;runCoins+=3*perks.mult;puff(c.x,c.y,8,"#ffd23f");}
+ }
+ coins=coins.filter(c=>c.x>-30&&!c.got);
+ if(bird.y>GROUND-bird.r){bird.y=GROUND-bird.r;hit(true);}
+}
+
+function draw(){
+ const s=cv.width/W;ctx.setTransform(s,0,0,s,0,0);
+ if(shake>0)ctx.translate((Math.random()-.5)*shake*.6,(Math.random()-.5)*shake*.6);
+ // sky
+ const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#5ab8e8");g.addColorStop(.6,"#a8e0f2");g.addColorStop(1,"#ffe3b8");ctx.fillStyle=g;ctx.fillRect(-20,-20,W+40,H+40);
+ ctx.fillStyle="rgba(255,236,180,.8)";ctx.beginPath();ctx.arc(320,120,46,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="rgba(255,255,255,.9)";for(const c of clouds){ctx.beginPath();ctx.arc(c.x,c.y,18*c.s,0,7);ctx.arc(c.x+20*c.s,c.y-8*c.s,22*c.s,0,7);ctx.arc(c.x+42*c.s,c.y,17*c.s,0,7);ctx.fill();}
+ // hills parallax
+ const off=(dist*.25)%240;
+ ctx.fillStyle="#7cc98a";ctx.beginPath();ctx.moveTo(-20,GROUND);for(let x=-off-240;x<W+240;x+=240){ctx.quadraticCurveTo(x+60,GROUND-110,x+120,GROUND-40);ctx.quadraticCurveTo(x+180,GROUND-130,x+240,GROUND-30);}ctx.lineTo(W+20,GROUND);ctx.fill();
+ // pipes (striped totem posts)
+ for(const p of pipes){const top=p.gy-p.gap/2,bot=p.gy+p.gap/2;col(p.x,-10,64,top+10,true);col(p.x,bot,64,GROUND-bot,false);}
+ // coins
+ for(const c of coins){const w=Math.abs(Math.cos(t*.08+c.bob))*10+2,y=c.y+Math.sin(t*.1+c.bob)*3;ctx.fillStyle="#ffd23f";ctx.strokeStyle="#1a1530";ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(c.x,y,w,11,0,0,7);ctx.fill();ctx.stroke();ctx.fillStyle="#fff6c0";ctx.fillRect(c.x-1.5,y-5,3,10);}
+ // ground
+ ctx.fillStyle="#d9a066";ctx.fillRect(-20,GROUND,W+40,H-GROUND+20);
+ ctx.fillStyle="#6fbf5a";ctx.fillRect(-20,GROUND,W+40,14);
+ ctx.fillStyle="#1a1530";ctx.fillRect(-20,GROUND,W+40,3);
+ ctx.fillStyle="#c88a52";const go=dist%36;for(let x=-go;x<W+36;x+=36){ctx.beginPath();ctx.moveTo(x,GROUND+14);ctx.lineTo(x+18,GROUND+14);ctx.lineTo(x+6,H);ctx.lineTo(x-12,H);ctx.fill();}
+ // particles
+ for(const p of parts){ctx.globalAlpha=Math.max(0,p.l);ctx.fillStyle=p.col;ctx.beginPath();if(p.star){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(t*.1);ctx.fillRect(-p.r,-p.r*.3,p.r*2,p.r*.6);ctx.fillRect(-p.r*.3,-p.r,p.r*.6,p.r*2);ctx.restore();}else{ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}}ctx.globalAlpha=1;
+ // bird
+ if(bird&&state!=="home"){
+  if(!(inv>0&&Math.floor(t/4)%2))drawBird(ctx,bird.b,bird.x,bird.y,bird.rot,t*(state==="dead"?0:.5),perks.size);
+  if(shields>0){ctx.strokeStyle="rgba(125,249,255,.7)";ctx.lineWidth=3;ctx.beginPath();ctx.arc(bird.x,bird.y,bird.r+12,0,7);ctx.stroke();}
+ }
+ if(state==="home"){drawBird(ctx,byId[save.sel],W/2,GROUND-40+Math.sin(t*.08)*5,0,t*.4,1.4);}
+ // HUD
+ if(state==="play"||state==="ready"||state==="dead"){
+  ctx.font="400 56px Bungee, Impact, sans-serif";ctx.textAlign="center";ctx.lineWidth=7;ctx.strokeStyle="#1a1530";ctx.fillStyle="#fff8ec";ctx.lineJoin="round";ctx.strokeText(score,W/2,90);ctx.fillText(score,W/2,90);
+  ctx.textAlign="left";ctx.font="900 20px Nunito, sans-serif";ctx.lineWidth=5;
+  const ct="● "+Math.floor(runCoins);ctx.strokeText(ct,16,34);ctx.fillStyle="#ffd23f";ctx.fillText(ct,16,34);
+  ctx.textAlign="right";let hud="";for(let i=0;i<shields;i++)hud+="◆";if(revive)hud+=" ✦";if(hud){ctx.fillStyle="#7df9ff";ctx.strokeText(hud,W-16,34);ctx.fillText(hud,W-16,34);}
+ }
+ if(state==="ready"){ctx.textAlign="center";ctx.font="900 22px Nunito, sans-serif";ctx.lineWidth=6;ctx.strokeStyle="#1a1530";ctx.fillStyle="#fff8ec";ctx.strokeText("Tap to flap",W/2,H*.6);ctx.fillText("Tap to flap",W/2,H*.6);
+  ctx.font="800 15px Nunito, sans-serif";const pl=perkLines(bird.b).join("  ·  ");ctx.lineWidth=4;ctx.strokeText(pl,W/2,H*.6+28);ctx.fillStyle="#ffd23f";ctx.fillText(pl,W/2,H*.6+28);}
+ if(flash>0){ctx.setTransform(s,0,0,s,0,0);ctx.fillStyle=`rgba(255,255,255,${flash*.6})`;ctx.fillRect(0,0,W,H);}
+}
+function col(x,y,w,h,isTop){
+ if(h<=0)return;
+ ctx.fillStyle="#ef6f4f";ctx.fillRect(x,y,w,h);
+ ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+ ctx.fillStyle="#f59a4a";for(let yy=(isTop?y+h:y)%28-28;yy<y+h+28;yy+=28){ctx.fillRect(x,yy,w,12);}
+ ctx.fillStyle="rgba(255,255,255,.25)";ctx.fillRect(x+8,y,8,h);
+ ctx.restore();
+ ctx.strokeStyle="#1a1530";ctx.lineWidth=3;ctx.strokeRect(x,y,w,h);
+ const capY=isTop?y+h-20:y;ctx.fillStyle="#3ed6b0";ctx.fillRect(x-6,capY,w+12,20);ctx.strokeRect(x-6,capY,w+12,20);
+ ctx.fillStyle="rgba(255,255,255,.35)";ctx.fillRect(x,capY+4,w,4);
+}
+let last=performance.now();
+function loop(now){const dt=Math.min(2,(now-last)/16.667);last=now;update(dt);draw();requestAnimationFrame(loop);}
+
+// ---------- UI ----------
+const $=id=>document.getElementById(id);
+const screens=["home","shop","reveal","flock","over"];
+let prev="home";
+function show(id){screens.forEach(s=>$(s).hidden=s!==id);if(id)prev=id==="reveal"?prev:id;refresh();}
+function hideAll(){screens.forEach(s=>$(s).hidden=true);}
+function selCard(el){const b=byId[save.sel];el.innerHTML="";el.appendChild(birdThumb(b,64,true));const d=document.createElement("div");d.style.minWidth="0";
+ d.innerHTML=`<span class="tag" style="background:${R[b.r].c}">${R[b.r].n}</span><h2>${b.name}</h2><ul class="perks">${perkLines(b).map(l=>`<li>${l}</li>`).join("")}</ul>`;el.appendChild(d);}
+function refresh(){
+ $("hCoins").textContent=save.coins;$("hBest").textContent=save.best;$("sCoins").textContent=save.coins;
+ selCard($("selCard"));selCard($("flockSel"));
+ // packs
+ const pl=$("packList");pl.innerHTML="";
+ PACKS.forEach(p=>{const b=document.createElement("button");b.className="pack";b.disabled=save.coins<p.cost;
+  const odds=ORDER.filter(r=>p.odds[r]>0).map(r=>`<span style="color:${R[r].c}">${R[r].n[0]}</span> ${p.odds[r]}%`).join(" · ");
+  b.innerHTML=`<div class="pack-art" style="background:${p.col}">${p.sym}</div><div style="min-width:0"><b>${p.name}</b><div class="odds">${odds}</div></div><div class="price"><i class="coin-ico"></i>${p.cost}</div>`;
+  b.onclick=()=>openPack(p);pl.appendChild(b);});
+ // flock
+ const g=$("flockGrid");g.innerHTML="";const own=BIRDS.filter(b=>save.owned[b.id]).length;$("flockCount").textContent=`${own} of ${BIRDS.length} birds found. Tap one to equip.`;
+ BIRDS.forEach(b=>{const o=!!save.owned[b.id];const s=document.createElement("button");s.className="slot"+(o?"":" locked")+(save.sel===b.id?" on":"");s.style.borderColor=o?R[b.r].c:"";
+  s.appendChild(birdThumb(b,56,o));const n=document.createElement("span");n.textContent=o?b.name:R[b.r].n;n.style.color=R[b.r].c;s.appendChild(n);
+  if(o)s.onclick=()=>{save.sel=b.id;persist();refresh();};else s.disabled=true;g.appendChild(s);});
+}
+function roll(p){let x=Math.random()*100;for(const r of ORDER){x-=p.odds[r];if(x<0)return r;}return "rare";}
+function openPack(p){
+ if(save.coins<p.cost)return;save.coins-=p.cost;persist();
+ const rar=roll(p);const pool=BIRDS.filter(b=>b.r===rar);const b=pool[Math.floor(Math.random()*pool.length)];
+ const el=$("reveal");show("reveal");
+ el.innerHTML=`<div class="box" id="theBox" style="background:${p.col}" role="button" tabindex="0" aria-label="Open pack">${p.sym}</div><div class="hint">Tap the pack to rip it open</div>`;
+ const open=()=>{
+  const isNew=!save.owned[b.id];
+  let msg;if(isNew){save.owned[b.id]=1;msg=`<div class="newflag">NEW BIRD!</div>`;}else{save.coins+=R[rar].dup;msg=`<div class="muted">Duplicate. +${R[rar].dup} coins back</div>`;}
+  persist();
+  const c=R[rar].c;
+  el.innerHTML=`<div class="burst" style="background:repeating-conic-gradient(${c} 0 12deg,transparent 12deg 24deg)"></div>
+   <div class="won"><div class="won-card"><span class="tag" style="background:${c}">${R[rar].n}</span><div id="wonImg"></div><h3>${b.name}</h3>${msg}<ul class="perks">${perkLines(b).map(l=>`<li>${l}</li>`).join("")}</ul></div></div>
+   <div class="row"><button class="btn mint" id="eqBtn">Equip</button><button class="btn" id="againBtn" ${save.coins<p.cost?"disabled":""}>Open another</button></div>
+   <button class="btn sm alt" id="rvBack">Back to packs</button>`;
+  $("wonImg").appendChild(birdThumb(b,120,true));
+  $("eqBtn").onclick=()=>{save.sel=b.id;persist();show("home");};
+  $("againBtn").onclick=()=>openPack(p);
+  $("rvBack").onclick=()=>show("shop");
+  for(let i=0;i<40;i++)parts.push({x:W/2,y:H*.4,vx:(Math.random()-.5)*10,vy:(Math.random()-.5)*10,l:1.4,col:c,r:3+Math.random()*3,star:rar!=="common"});
+ };
+ const box=$("theBox");box.onclick=open;box.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};box.focus();
+}
+function startRun(){reset();state="ready";hideAll();}
+$("playBtn").onclick=startRun;$("retryBtn").onclick=startRun;
+$("packsBtn").onclick=()=>show("shop");$("oPacks").onclick=()=>{state="home";show("shop");};
+$("flockBtn").onclick=()=>show("flock");$("oHome").onclick=()=>{state="home";show("home");};
+document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>{state="home";show("home");});
+cv.addEventListener("pointerdown",e=>{e.preventDefault();flap();});
+addEventListener("keydown",e=>{if(e.code==="Space"||e.code==="ArrowUp"||e.code==="KeyW"){if(state==="ready"||state==="play"){e.preventDefault();flap();}else if(state==="dead"&&!$("over").hidden&&e.code==="Space"){e.preventDefault();startRun();}}});
+
+reset();show("home");requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
